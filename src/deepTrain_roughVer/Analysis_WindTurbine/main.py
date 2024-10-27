@@ -147,17 +147,23 @@ def test(test_loader, model_path, save_dir, show_fig = False):
         plt.show()
 
 if __name__ == "__main__":
-    # argument parsing
-    parser = argparse.ArgumentParser(description="Wind Power estimation")
-    all_modes_group = parser.add_argument_group("Flags common to all modes")
-    all_modes_group.add_argument("--mode", type=str, choices=["train", "test"], required=True)
-    
-    common_group = parser.add_argument_group("Flags for commons")
-    common_group.add_argument("--save_dir", type=str, default="")
-    common_group.add_argument("--model_type", type=str, choices=[], required="True")
-    
-    test_group = parser.add_argument_group("Flags for test only")
-    test_group.add_argument("--load_path", type=str, default="")
+    parser = argparse.ArgumentParser(description="Wind Power Estimation")
+
+    # common
+    parser.add_argument("--save_dir", type=str, default="results", help="Directory to save results and models")
+    parser.add_argument("--model_type", type=str, choices=["GRU", "LSTM", "RNN"], required=True, help="Type of model to use")
+    parser.add_argument("--epochs", type=int, default=200, help="Number of training epochs")
+    parser.add_argument("--batch_size", type=int, default=24, help="Batch size for training")
+    parser.add_argument("--lr", type=float, default=0.001, help="Learning rate")
+    parser.add_argument("--criterion_type", type=str, choices=["MSE", "SmoothL1"], default="MSE", help="Loss function type")
+    parser.add_argument("--weight_decay", type=float, default=0.0001, help="Weight decay for L2 regularization")
+    parser.add_argument("--max_grad_norm", type=float, default=1.0, help="Maximum gradient norm for gradient clipping")
+    parser.add_argument("--early_n", type=int, default=None, help="Early stopping patience")
+
+    # data key
+    parser.add_argument("--feature_keys", nargs='+', required=True, help="List of feature keys to use from the dataset")
+
+    args = parser.parse_args()
     
     # 배치사이즈, 에퐄, 레이어 등은 전역 변수에 둠.
     # 추후 yaml로

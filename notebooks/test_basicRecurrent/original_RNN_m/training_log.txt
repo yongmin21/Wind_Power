@@ -1,3 +1,0 @@
-Final Validation Loss: 17644649541.7500
-MAE: 4885.4160, NMAE: 74.4822, R^2: 0.1265
-devide capacity => MAE/20700: 0.2360, MAE/79600: 0.0614

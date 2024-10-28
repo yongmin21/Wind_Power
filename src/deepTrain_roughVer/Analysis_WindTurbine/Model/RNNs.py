@@ -82,32 +82,196 @@ class RNN(nn.Module):
         out = self.fc2(out)
         return out
 
+
+# just RNNs
 class LSTM(nn.Module):
     def __init__(self, input_dim, hidden_dim, rec_dropout=0.4, num_layers=1, bidirectional=False):
         super(LSTM, self).__init__()
         self.lstm_module = LSTMModule(input_dim, hidden_dim, rec_dropout, num_layers, bidirectional)
-        self.fc1 = nn.Linear(hidden_dim, hidden_dim/2)
-        self.fc2 = nn.Linear(hidden_dim/2, 1)
+        self.bidirectional = bidirectional
+        if self.bidirectional:
+            self.fc1 = nn.Linear(hidden_dim * 2, hidden_dim)
+        else:
+            self.fc1 = nn.Linear(hidden_dim, hidden_dim//2)
+        self.fc2 = nn.Linear(hidden_dim, 1)
 
     def forward(self, x):
         recurrent = self.lstm_module(x)
         out = self.fc1(recurrent)
         out = self.fc2(out)
+        out = torch.clamp(out, min=0)
         return out
+
 
 class GRU(nn.Module):
     def __init__(self, input_dim, hidden_dim, rec_dropout=0.4, num_layers=1, bidirectional=False):
         super(GRU, self).__init__()
         self.gru_module = GRUModule(input_dim, hidden_dim, rec_dropout, num_layers, bidirectional)
-        self.fc1 = nn.Linear(hidden_dim, hidden_dim/2)
-        self.fc2 = nn.Linear(hidden_dim/2, 1)
+        self.bidirectional = bidirectional
+        if self.bidirectional:
+            self.fc1 = nn.Linear(hidden_dim * 2, hidden_dim)
+        else:
+            self.fc1 = nn.Linear(hidden_dim, hidden_dim//2)
+        self.fc2 = nn.Linear(hidden_dim, 1)
+    def forward(self, x):
+        recurrent = self.gru_module(x)
+        out = self.fc1(recurrent)
+        out = self.fc2(out)
+        out = torch.clamp(out, min=0)
+        return out
+    
+# apply relu in fc layer & dropout in RNNs
+class LSTM_relu(nn.Module):
+    def __init__(self, input_dim, hidden_dim, rec_dropout=0.4, num_layers=1, bidirectional=False):
+        super(LSTM_relu, self).__init__()
+        self.lstm_module = LSTMModule(input_dim, hidden_dim, rec_dropout, num_layers, bidirectional)
+        self.bidirectional = bidirectional
+        if self.bidirectional:
+            self.fc1 = nn.Sequential(
+                nn.Linear(hidden_dim * 2, hidden_dim),
+                nn.ReLU()
+            )
+        else:
+            self.fc1 = nn.Sequential(
+                nn.Linear(hidden_dim, hidden_dim // 2),
+                nn.ReLU()
+            )
+        self.fc2 = nn.Linear(hidden_dim, 1)
+
+    def forward(self, x):
+        recurrent = self.lstm_module(x)
+        out = self.fc1(recurrent)
+        out = self.fc2(out)
+        # out = torch.clamp(out, min=0) # capacity write later
+        return out
+
+
+class GRU_relu(nn.Module):
+    def __init__(self, input_dim, hidden_dim, rec_dropout=0.4, num_layers=1, bidirectional=False):
+        super(GRU_relu, self).__init__()
+        self.gru_module = GRUModule(input_dim, hidden_dim, rec_dropout, num_layers, bidirectional)
+        self.bidirectional = bidirectional
+        if self.bidirectional:
+            self.fc1 = nn.Sequential(
+                nn.Linear(hidden_dim * 2, hidden_dim),
+                nn.ReLU()
+            )
+        else:
+            self.fc1 = nn.Sequential(
+                nn.Linear(hidden_dim, hidden_dim // 2),
+                nn.ReLU()
+            )
+        self.fc2 = nn.Linear(hidden_dim, 1)
 
     def forward(self, x):
         recurrent = self.gru_module(x)
         out = self.fc1(recurrent)
         out = self.fc2(out)
+        # out = torch.clamp(out, min=0) # capacity write later
         return out
-    
+
+# dropout in dense too
+class LSTM_relu_dropALL(nn.Module):
+    def __init__(self, input_dim, hidden_dim, rec_dropout=0.4, num_layers=1, bidirectional=False):
+        super(LSTM_relu_dropALL, self).__init__()
+        self.lstm_module = LSTMModule(input_dim, hidden_dim, rec_dropout, num_layers, bidirectional)
+        self.bidirectional = bidirectional
+        if self.bidirectional:
+            self.fc1 = nn.Sequential(
+                nn.Linear(hidden_dim * 2, hidden_dim),
+                nn.ReLU()
+            )
+        else:
+            self.fc1 = nn.Sequential(
+                nn.Linear(hidden_dim, hidden_dim // 2),
+                nn.ReLU()
+            )
+        self.fc2 = nn.Linear(hidden_dim, 1)
+
+    def forward(self, x):
+        recurrent = self.lstm_module(x)
+        out = self.fc1(recurrent)
+        out = self.fc2(out)
+        # out = torch.clamp(out, min=0) # capacity write later
+        return out
+
+
+class GRU_relu_dropALL(nn.Module):
+    def __init__(self, input_dim, hidden_dim, rec_dropout=0.4, num_layers=1, bidirectional=False):
+        super(GRU_relu_dropALL, self).__init__()
+        self.gru_module = GRUModule(input_dim, hidden_dim, rec_dropout, num_layers, bidirectional)
+        self.bidirectional = bidirectional
+        if self.bidirectional:
+            self.fc1 = nn.Sequential(
+                nn.Linear(hidden_dim * 2, hidden_dim),
+                nn.ReLU(),
+                nn.Dropout(rec_dropout)
+            )
+        else:
+            self.fc1 = nn.Sequential(
+                nn.Linear(hidden_dim, hidden_dim // 2),
+                nn.ReLU(),
+                nn.Dropout(rec_dropout)
+            )
+        self.fc2 = nn.Linear(hidden_dim, 1)
+
+    def forward(self, x):
+        recurrent = self.gru_module(x)
+        out = self.fc1(recurrent)
+        out = self.fc2(out)
+        # out = torch.clamp(out, min=0) # capacity write later
+        return out
+
+
+# apply dropout all layer, and apply batch norm
+class GRUWithBatchNorm(nn.Module):
+    def __init__(self, input_dim, hidden_dim, rec_dropout=0.4, num_layers=1, bidirectional=False):
+        super(GRUWithBatchNorm, self).__init__()
+        self.gru_module = nn.GRU(input_dim, hidden_dim, num_layers=num_layers, batch_first=True,
+                                 bidirectional=bidirectional, dropout=rec_dropout)
+
+        self.batch_norm = nn.BatchNorm1d(hidden_dim * 2 if bidirectional else hidden_dim)
+
+        if bidirectional:
+            self.fc1 = nn.Sequential(nn.Linear(hidden_dim * 2, hidden_dim), nn.ReLU(), nn.Dropout(rec_dropout))
+        else:
+            self.fc1 = nn.Sequential(nn.Linear(hidden_dim, hidden_dim // 2), nn.ReLU(), nn.Dropout(rec_dropout))
+
+        self.fc2 = nn.Linear(hidden_dim, 1)
+
+    def forward(self, x):
+        recurrent, _ = self.gru_module(x)
+        if recurrent.dim() == 3:
+            recurrent = recurrent[:, -1, :]  # 마지막 time step만 사용
+        recurrent = self.batch_norm(recurrent)
+        out = self.fc1(recurrent)
+        out = self.fc2(out)
+        return out
+
+
+class LSTMWithBatchNorm(nn.Module):
+    def __init__(self, input_dim, hidden_dim, rec_dropout=0.4, num_layers=1, bidirectional=False):
+        super(LSTMWithBatchNorm, self).__init__()
+        self.lstm_module = nn.LSTM(input_dim, hidden_dim, num_layers=num_layers, batch_first=True,
+                                 bidirectional=bidirectional, dropout=rec_dropout)
+
+        self.batch_norm = nn.BatchNorm1d(hidden_dim * 2 if bidirectional else hidden_dim)
+
+        if bidirectional:
+            self.fc1 = nn.Sequential(nn.Linear(hidden_dim * 2, hidden_dim), nn.ReLU(), nn.Dropout(rec_dropout))
+        else:
+            self.fc1 = nn.Sequential(nn.Linear(hidden_dim, hidden_dim // 2), nn.ReLU(), nn.Dropout(rec_dropout))
+
+        self.fc2 = nn.Linear(hidden_dim, 1)
+
+    def forward(self, x):
+        recurrent, _ = self.lstm_module(x)
+        if recurrent.dim() == 3:
+            recurrent = recurrent[:, -1, :]  # 마지막 time step만 사용
+        recurrent = self.batch_norm(recurrent)
+        out = self.fc1(recurrent)
+        out = self.fc2(out)
+        return out
 
 class SeriesDecompLSTM(nn.Module):
     def __init__(self, input_dim, output_dim, hidden_dim, rec_dropout=0, num_layers=1, in_moving_mean=True, decomp_kernel=[3, 5, 7, 9], feature_wise_norm=True):

@@ -1,0 +1,8 @@
+Training Configuration:
+epochs=1500
+batch_size=24
+learning_rate=0.001
+criterion_type=SmoothL1
+early_n=None
+weight_decay=0.0001
+max_grad_norm=1.0
